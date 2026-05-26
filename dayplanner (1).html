@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>day planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #111110;
+    --surface: #1A1A18;
+    --surface2: #222220;
+    --border: rgba(255,255,255,0.07);
+    --border-med: rgba(255,255,255,0.12);
+    --text: #F0EFE8;
+    --muted: #888780;
+    --faint: #555550;
+    --purple: #7F77DD;
+    --purple-bg: #26215C;
+    --purple-text: #AFA9EC;
+    --pink: #ED93B1;
+    --pink-bg: #4B1528;
+    --pink-text: #F4C0D1;
+    --blue: #85B7EB;
+    --blue-bg: #042C53;
+    --blue-text: #B5D4F4;
+    --amber: #EF9F27;
+    --amber-bg: #412402;
+    --amber-text: #FAC775;
+    --teal: #5DCAA5;
+    --teal-bg: #04342C;
+    --teal-text: #9FE1CB;
+    --gray: #888780;
+    --gray-bg: #2C2C2A;
+    --gray-text: #D3D1C7;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* sidebar */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 0.5px solid var(--border-med);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+  }
+  .sidebar-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    padding: 0 20px 24px;
+    letter-spacing: -0.02em;
+  }
+  .sidebar-logo span { color: var(--purple); }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.1s, color 0.1s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { color: var(--text); background: var(--surface2); font-weight: 500; }
+  .nav-item .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .nav-section {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 16px 20px 6px;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    font-size: 11px;
+    color: var(--faint);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* main */
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* header */
+  .topbar {
+    padding: 20px 32px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-bottom: 0;
+  }
+  .topbar-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .topbar-title { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    border-bottom: 0.5px solid var(--border-med);
+    background: var(--bg);
+    margin-top: 12px;
+  }
+  .tab {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+    padding: 10px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    transition: color 0.1s, border-color 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--purple); }
+
+  /* content panels */
+  .panel { display: none; padding: 24px 32px 40px; }
+  .panel.active { display: block; }
+
+  /* schedule blocks */
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--faint);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin: 20px 0 8px 74px;
+  }
+  .section-label:first-child { margin-top: 4px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 14px 0 14px 74px; }
+
+  .block { display: flex; gap: 12px; align-items: stretch; margin-bottom: 6px; }
+  .time-col {
+    width: 62px; min-width: 62px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--faint);
+    padding-top: 12px;
+    text-align: right;
+    line-height: 1.3;
+  }
+  .block-card {
+    flex: 1;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    border: 0.5px solid var(--border);
+    padding: 11px 15px;
+    background: var(--surface);
+    transition: border-color 0.15s;
+    cursor: default;
+  }
+  .block-card:hover { border-color: var(--border-med); }
+  .block-card.trading { border-left: 2.5px solid var(--purple); }
+  .block-card.linalg  { border-left: 2.5px solid var(--pink); }
+  .block-card.intern  { border-left: 2.5px solid var(--blue); }
+  .block-card.assign  { border-left: 2.5px solid var(--amber); }
+  .block-card.ngo     { border-left: 2.5px solid var(--teal); }
+  .block-card.reset   { border-left: 2.5px solid var(--gray); }
+  .block-card.ai-added {
+    border-left: 2.5px solid var(--purple);
+    background: var(--purple-bg);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .block-lbl {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 2px;
+  }
+  .block-lbl.trading { color: var(--purple-text); }
+  .block-lbl.linalg  { color: var(--pink-text); }
+  .block-lbl.intern  { color: var(--blue-text); }
+  .block-lbl.assign  { color: var(--amber-text); }
+  .block-lbl.ngo     { color: var(--teal-text); }
+  .block-lbl.reset   { color: var(--gray-text); }
+  .block-lbl.ai-added { color: var(--purple-text); }
+
+  .block-title { font-size: 15px; font-weight: 500; color: var(--text); margin: 0 0 3px; }
+  .block-tip { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.45; }
+
+  .school-bar {
+    margin-left: 74px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .school-bar strong { color: var(--text); font-weight: 500; }
+
+  /* tasks panel */
+  .task-input-wrap {
+    background: var(--surface);
+    border: 0.5px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .task-input-header {
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 10px;
+  }
+  .task-input-row { display: flex; gap: 8px; align-items: flex-start; }
+  textarea#taskInput {
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg);
+    border: 0.5px solid var(--border-med);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    resize: none;
+    min-height: 72px;
+    outline: none;
+    transition: border-color 0.15s;
+    line-height: 1.5;
+  }
+  textarea#taskInput:focus { border-color: var(--purple); }
+  textarea#taskInput::placeholder { color: var(--faint); }
+
+  .btn-add {
+    background: var(--purple);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    align-self: flex-end;
+    min-width: 80px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-add:hover { opacity: 0.88; }
+  .btn-add:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .task-hint {
+    font-size: 12px; color: var(--faint); margin-top: 8px; line-height: 1.5;
+  }
+
+  /* task list */
+  .task-list { display: flex; flex-direction: column; gap: 6px; }
+  .task-item {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+    transition: border-color 0.15s;
+    animation: fadeIn 0.25s ease;
+  }
+  .task-item:hover { border-color: var(--border-med); }
+  .task-item.done { opacity: 0.45; }
+  .task-check {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 1.5px solid var(--border-med);
+    cursor: pointer; flex-shrink: 0; margin-top: 1px;
+    background: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .task-check.checked { background: var(--purple); border-color: var(--purple); }
+  .task-check.checked::after { content: '✓'; font-size: 10px; color: white; font-weight: 600; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-name { font-size: 15px; font-weight: 500; color: var(--text); }
+  .task-item.done .task-name { text-decoration: line-through; }
+  .task-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .task-slot {
+    display: inline-block;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 4px;
+    margin-top: 5px;
+  }
+  .task-slot.trading { background: var(--purple-bg); color: var(--purple-text); }
+  .task-slot.linalg  { background: var(--pink-bg); color: var(--pink-text); }
+  .task-slot.intern  { background: var(--blue-bg); color: var(--blue-text); }
+  .task-slot.assign  { background: var(--amber-bg); color: var(--amber-text); }
+  .task-slot.ngo     { background: var(--teal-bg); color: var(--teal-text); }
+  .task-slot.reset   { background: var(--gray-bg); color: var(--gray-text); }
+
+  .task-del {
+    background: none; border: none; cursor: pointer;
+    color: var(--faint); font-size: 18px; padding: 0 2px;
+    line-height: 1; flex-shrink: 0;
+    transition: color 0.1s;
+  }
+  .task-del:hover { color: #E24B4A; }
+
+  /* template panel */
+  .template-block {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .template-block-left { flex: 1; min-width: 0; }
+  .template-time { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--faint); margin-bottom: 3px; }
+  .template-title { font-size: 15px; font-weight: 500; color: var(--text); }
+  .template-tip { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .template-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn-sm {
+    background: var(--surface2); border: 0.5px solid var(--border-med);
+    border-radius: var(--radius-sm); padding: 5px 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px;
+    color: var(--muted); cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+  .btn-sm:hover { background: var(--border); color: var(--text); }
+
+  /* modal */
+  .modal-backdrop {
+    display: none;
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border-med);
+    padding: 24px;
+    width: 380px;
+    max-width: 90vw;
+  }
+  .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px;
+    color: var(--text); background: var(--bg);
+    border: 0.5px solid var(--border-med); border-radius: var(--radius-sm);
+    padding: 9px 12px; outline: none; margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+  .modal input:focus, .modal textarea:focus, .modal select:focus { border-color: var(--purple); }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  .btn-cancel {
+    background: none; border: 0.5px solid var(--border-med);
+    border-radius: var(--radius-sm); padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--muted); cursor: pointer;
+  }
+  .btn-cancel:hover { background: var(--surface2); }
+
+  /* loading dots */
+  .loading-dots { display: inline-flex; gap: 3px; align-items: center; }
+  .loading-dots span {
+    width: 4px; height: 4px; border-radius: 50%; background: white;
+    animation: dot-bounce 1s infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes dot-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center; padding: 32px 16px;
+    color: var(--faint); font-size: 13px; line-height: 1.6;
+  }
+  .empty-state-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
+
+  /* legend */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+  .ld { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  @media (max-width: 600px) {
+    .sidebar { display: none; }
+    .panel { padding: 16px; }
+    .section-label, .divider { margin-left: 60px; }
+    .time-col { width: 50px; min-width: 50px; }
+    .school-bar { margin-left: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">day<span>.</span>plan</div>
+    <div class="nav-section">Views</div>
+    <button class="nav-item active" onclick="switchTab('schedule'); setNav(this)">
+      <div class="dot" style="background:var(--purple)"></div> today's schedule
+    </button>
+    <button class="nav-item" onclick="switchTab('tasks'); setNav(this)">
+      <div class="dot" style="background:var(--teal)"></div> tasks
+    </button>
+    <button class="nav-item" onclick="switchTab('template'); setNav(this)">
+      <div class="dot" style="background:var(--gray)"></div> template
+    </button>
+    <div class="sidebar-footer" id="clockDisplay">--:-- --</div>
+  </div>
+
+  <!-- main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-date" id="dateDisplay">loading...</div>
+        <div class="topbar-title">monday</div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" id="tab-schedule" onclick="switchTab('schedule')">schedule</button>
+      <button class="tab" id="tab-tasks" onclick="switchTab('tasks')">tasks</button>
+      <button class="tab" id="tab-template" onclick="switchTab('template')">template</button>
+    </div>
+
+    <!-- SCHEDULE PANEL -->
+    <div class="panel active" id="panel-schedule">
+      <div class="legend">
+        <div class="li"><div class="ld" style="background:var(--purple)"></div> paper trading</div>
+        <div class="li"><div class="ld" style="background:var(--pink)"></div> linear algebra</div>
+        <div class="li"><div class="ld" style="background:var(--blue)"></div> internships</div>
+        <div class="li"><div class="ld" style="background:var(--amber)"></div> assignments</div>
+        <div class="li"><div class="ld" style="background:var(--teal)"></div> ngo work</div>
+        <div class="li"><div class="ld" style="background:var(--gray)"></div> break / admin</div>
+      </div>
+
+      <div id="scheduleBlocks">
+        <!-- blocks rendered by JS -->
+      </div>
+    </div>
+
+    <!-- TASKS PANEL -->
+    <div class="panel" id="panel-tasks">
+      <div class="task-input-wrap">
+        <div class="task-input-header">add a task</div>
+        <div class="task-input-row">
+          <textarea id="taskInput" placeholder="e.g. finish linalg problem set 3, review my AAPL paper trade, send email to NGO team..." rows="3"></textarea>
+          <button class="btn-add" id="addBtn" onclick="addTask()">
+            <span id="addBtnLabel">add ↗</span>
+          </button>
+        </div>
+        <div class="task-hint">AI will figure out where it fits in your day and drop it into the schedule.</div>
+      </div>
+      <div id="taskList" class="task-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">○</div>
+          no tasks yet — add one above and it'll land in your schedule automatically
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPLATE PANEL -->
+    <div class="panel" id="panel-template">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div>
+          <div style="font-size:15px; font-weight:500;">daily template</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">edit your default schedule blocks</div>
+        </div>
+        <button class="btn-sm" onclick="openAddBlock()">+ add block</button>
+      </div>
+      <div id="templateList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- edit modal -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal">
+    <h3 id="modalTitle">edit block</h3>
+    <p id="modalDesc">Update the details for this schedule block.</p>
+    <input type="text" id="editTime" placeholder="time (e.g. 6:15)" />
+    <input type="text" id="editTitle" placeholder="block title" />
+    <textarea id="editTip" placeholder="tip / description" rows="2" style="resize:none;"></textarea>
+    <select id="editType">
+      <option value="trading">paper trading</option>
+      <option value="linalg">linear algebra</option>
+      <option value="intern">internships</option>
+      <option value="assign">assignments</option>
+      <option value="ngo">ngo work</option>
+      <option value="reset">break / admin</option>
+    </select>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">cancel</button>
+      <button class="btn-add" style="min-width:70px;" onclick="saveBlock()">save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_SCHEDULE = [
+  { id: 'b1', time: '6:00', type: 'reset', section: 'before school — peak brain', title: 'wake + light breakfast', tip: '15 min, no phone. something small to eat.' },
+  { id: 'b2', time: '6:15', type: 'trading', title: 'pre-market scan + trade', tip: 'market opens 6:30am PST. prep then active paper trading.' },
+  { id: 'b3', time: '7:15', type: 'linalg', title: 'one concept or problem set', tip: '45 min of deep focus. one thing, done well.' },
+  { id: 'b4', time: '8:00', type: 'reset', title: 'out the door', tip: 'pack up, mentally note your top after-school task.', school: false },
+  { id: 'school', time: '8:00–4:00', type: 'school', title: 'school', tip: 'free periods → assignments or internship research.', isSchool: true },
+  { id: 'b5', time: '4:00', type: 'reset', section: 'after school — fuel first', title: 'lunch + reset', tip: "you've been at school all day — eat first, decompress." },
+  { id: 'b6', time: '4:30', type: 'assign', title: 'most urgent deadlines first', tip: '60 min timer. knock out whatever\'s due soonest.' },
+  { id: 'b7', time: '5:30', type: 'intern', title: 'applications + outreach', tip: '30 min: 1 app, 1 cold email, or 1 org researched.' },
+  { id: 'b8', time: '6:00', type: 'ngo', title: 'focused contribution block', tip: '90 min of your best evening energy. treat it like a real job.' },
+  { id: 'b9', time: '7:30', type: 'linalg', title: 'review morning concepts', tip: '30 min spaced review of what you studied at 7am.' },
+  { id: 'b10', time: '8:00', type: 'reset', section: 'evening — recover properly', title: 'dinner', tip: 'family dinner — screens away.' },
+  { id: 'b11', time: '8:45', type: 'reset', title: 'shutdown ritual', tip: 'write 3 tasks for tomorrow, close all tabs. screens off by 10pm.' },
+];
+
+const TYPE_LABELS = {
+  trading: 'paper trading', linalg: 'linear algebra', intern: 'internships',
+  assign: 'assignments', ngo: 'ngo work', reset: 'break / admin'
+};
+
+let schedule = JSON.parse(localStorage.getItem('schedule') || 'null') || DEFAULT_SCHEDULE.map(b => ({...b}));
+let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+let editingId = null;
+let isAdding = false;
+
+function save() {
+  localStorage.setItem('schedule', JSON.stringify(schedule));
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'schedule') renderSchedule();
+  if (name === 'tasks') renderTasks();
+  if (name === 'template') renderTemplate();
+}
+
+function setNav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function renderSchedule() {
+  const container = document.getElementById('scheduleBlocks');
+  container.innerHTML = '';
+  let lastSection = null;
+  schedule.forEach(b => {
+    if (b.section && b.section !== lastSection) {
+      if (lastSection !== null) {
+        const div = document.createElement('hr');
+        div.className = 'divider';
+        container.appendChild(div);
+      }
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label';
+      lbl.textContent = b.section;
+      container.appendChild(lbl);
+      lastSection = b.section;
+    }
+    if (b.isSchool) {
+      const bar = document.createElement('div');
+      bar.className = 'school-bar';
+      bar.innerHTML = `<strong>school</strong> — 8:00am–4:00pm. free periods → assignments or internship research.`;
+      container.appendChild(bar);
+      return;
+    }
+    const blk = document.createElement('div');
+    blk.className = 'block';
+    blk.innerHTML = `
+      <div class="time-col">${b.time}</div>
+      <div class="block-card ${b.aiAdded ? 'ai-added' : b.type}">
+        <div class="block-lbl ${b.aiAdded ? 'ai-added' : b.type}">${b.aiAdded ? 'ai scheduled — ' + (TYPE_LABELS[b.type] || b.type) : TYPE_LABELS[b.type] || b.type}</div>
+        <p class="block-title">${b.title}</p>
+        <p class="block-tip">${b.tip}</p>
+      </div>`;
+    container.appendChild(blk);
+  });
+}
+
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  if (!tasks.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">○</div>no tasks yet — add one above and it'll land in your schedule automatically</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  tasks.forEach((t, i) => {
+    const item = document.createElement('div');
+    item.className = 'task-item' + (t.done ? ' done' : '');
+    item.innerHTML = `
+      <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${i})"></div>
+      <div class="task-body">
+        <div class="task-name">${t.name}</div>
+        <div class="task-meta">${t.time || ''}</div>
+        ${t.slot ? `<span class="task-slot ${t.type || 'reset'}">${t.slot}</span>` : ''}
+      </div>
+      <button class="task-del" onclick="deleteTask(${i})" title="remove">×</button>`;
+    list.appendChild(item);
+  });
+}
+
+function renderTemplate() {
+  const list = document.getElementById('templateList');
+  list.innerHTML = '';
+  schedule.filter(b => !b.isSchool).forEach(b => {
+    const item = document.createElement('div');
+    item.className = 'template-block';
+    item.innerHTML = `
+      <div class="template-block-left">
+        <div class="template-time">${b.time}</div>
+        <div class="template-title">${b.title}</div>
+        <div class="template-tip">${b.tip}</div>
+      </div>
+      <div class="template-actions">
+        <button class="btn-sm" onclick="openEdit('${b.id}')">edit</button>
+        <button class="btn-sm" style="color:#E24B4A" onclick="deleteBlock('${b.id}')">del</button>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function toggleTask(i) {
+  tasks[i].done = !tasks[i].done;
+  save();
+  renderTasks();
+}
+
+function deleteTask(i) {
+  const t = tasks[i];
+  if (t.scheduleId) {
+    schedule = schedule.filter(b => b.id !== t.scheduleId);
+    save();
+    renderSchedule();
+  }
+  tasks.splice(i, 1);
+  save();
+  renderTasks();
+}
+
+async function addTask() {
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if (!text || isAdding) return;
+
+  isAdding = true;
+  const btn = document.getElementById('addBtn');
+  const lbl = document.getElementById('addBtnLabel');
+  btn.disabled = true;
+  lbl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  try {
+    const schedSummary = schedule.filter(b => !b.isSchool).map(b => `${b.time} — ${b.type} — ${b.title}`).join('\n');
+    const prompt = `You are a scheduling assistant for a high school student with this daily schedule:\n${schedSummary}\n\nThe student just added this task: "${text}"\n\nDecide:\n1. Which existing time slot it belongs to (by type: trading/linalg/intern/assign/ngo/reset)\n2. A short slot label (e.g. "4:30pm — assignments")\n3. A suggested time (e.g. "4:30pm")\n\nRespond ONLY with valid JSON, no markdown, no extra text:\n{"type":"assign","slot":"4:30 — assignments","time":"4:30pm","note":"added to your assignments block"}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
+    let parsed = {};
+    try { parsed = JSON.parse(raw); } catch(e) { parsed = { type: 'assign', slot: 'after school', time: '4:30pm', note: 'added to schedule' }; }
+
+    const taskObj = {
+      id: 'task_' + Date.now(),
+      name: text,
+      type: parsed.type || 'assign',
+      slot: parsed.slot || 'after school',
+      time: parsed.time || '',
+      note: parsed.note || '',
+      done: false
+    };
+
+    const schedBlock = {
+      id: 'ai_' + Date.now(),
+      time: parsed.time || '',
+      type: parsed.type || 'assign',
+      title: text,
+      tip: parsed.note || 'added from tasks',
+      aiAdded: true
+    };
+
+    taskObj.scheduleId = schedBlock.id;
+
+    const typeOrder = { reset: 0, trading: 1, linalg: 2, assign: 3, intern: 4, ngo: 5 };
+    const targetType = parsed.type || 'assign';
+    let insertIdx = -1;
+    for (let i = schedule.length - 1; i >= 0; i--) {
+      if (schedule[i].type === targetType && !schedule[i].isSchool) {
+        insertIdx = i + 1;
+        break;
+      }
+    }
+    if (insertIdx === -1) insertIdx = schedule.length;
+    schedule.splice(insertIdx, 0, schedBlock);
+
+    tasks.push(taskObj);
+    save();
+
+    input.value = '';
+    renderTasks();
+    renderSchedule();
+
+  } catch(err) {
+    const taskObj = { id: 'task_' + Date.now(), name: text, type: 'assign', slot: 'after school', time: '', done: false };
+    tasks.push(taskObj);
+    save();
+    input.value = '';
+    renderTasks();
+  }
+
+  isAdding = false;
+  btn.disabled = false;
+  lbl.textContent = 'add ↗';
+}
+
+document.getElementById('taskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addTask(); }
+});
+
+function openEdit(id) {
+  const b = schedule.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  isAdding = false;
+  document.getElementById('modalTitle').textContent = 'edit block';
+  document.getElementById('modalDesc').textContent = 'Update the details for this schedule block.';
+  document.getElementById('editTime').value = b.time;
+  document.getElementById('editTitle').value = b.title;
+  document.getElementById('editTip').value = b.tip;
+  document.getElementById('editType').value = b.type;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openAddBlock() {
+  editingId = null;
+  isAdding = true;
+  document.getElementById('modalTitle').textContent = 'add block';
+  document.getElementById('modalDesc').textContent = 'Add a new block to your daily template.';
+  document.getElementById('editTime').value = '';
+  document.getElementById('editTitle').value = '';
+  document.getElementById('editTip').value = '';
+  document.getElementById('editType').value = 'reset';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null; isAdding = false;
+}
+
+function saveBlock() {
+  const time = document.getElementById('editTime').value.trim();
+  const title = document.getElementById('editTitle').value.trim();
+  const tip = document.getElementById('editTip').value.trim();
+  const type = document.getElementById('editType').value;
+  if (!title) return;
+
+  if (isAdding) {
+    schedule.push({ id: 'custom_' + Date.now(), time, type, title, tip });
+  } else {
+    const b = schedule.find(x => x.id === editingId);
+    if (b) { b.time = time; b.title = title; b.tip = tip; b.type = type; }
+  }
+  save();
+  renderTemplate();
+  renderSchedule();
+  closeModal();
+}
+
+function deleteBlock(id) {
+  schedule = schedule.filter(b => b.id !== id);
+  save();
+  renderTemplate();
+  renderSchedule();
+}
+
+function updateClock() {
+  const now = new Date();
+  const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  document.getElementById('dateDisplay').textContent =
+    `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  document.querySelector('.topbar-title').textContent = days[now.getDay()];
+  let h = now.getHours(), m = now.getMinutes();
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  document.getElementById('clockDisplay').textContent = `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+updateClock();
+setInterval(updateClock, 10000);
+renderSchedule();
+</script>
+</body>
+</html>
